@@ -1,32 +1,49 @@
-use crossterm::event::{self, Event};
-use ratatui::{text::Text, Frame};
+use crate::{lyrics::fetch_lyrics, player::watch_playerctl, state::AppState};
 
-use crate::{player::watch_playerctl, state::AppState};
-
-pub mod state;
+pub mod lyrics;
 pub mod player;
+pub mod state;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // let mut terminal = ratatui::init();
     let mut app_state = AppState {
         song_info: None,
         lyrics: None,
         loading_status: state::LoadingStatus::Idle,
-        quit: false
+        quit: false,
     };
-    
+
     loop {
-        watch_playerctl(&mut app_state);
+        let saved_app_state = app_state.clone();
+        app_state.song_info = watch_playerctl();
+
+        if saved_app_state.song_info != app_state.song_info {
+            if let Some(song) = &app_state.song_info {
+                app_state.loading_status = state::LoadingStatus::Loading;
+
+                // assuming song has title & artist fields
+                match fetch_lyrics(&song.title, &song.artist).await {
+                    Ok(lyrics) => {
+                        app_state.lyrics = Some(lyrics);
+                        app_state.loading_status = state::LoadingStatus::Loaded;
+                        dbg!(&app_state);
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to fetch lyrics: {}", err);
+                        app_state.lyrics = None;
+                        app_state.loading_status = state::LoadingStatus::Error(err.to_string());
+                    }
+                }
+            }
+        }
+
         // terminal.draw(draw).expect("Failed to draw frame");
         // if matches!(event::read().expect("Failed to read event"), Event::Key(_)) {
-            // break;
+        // break;
         // }
+        //
     }
-    
-    // ratatui::restore();
-}
 
-fn draw(frame: &mut Frame) {
-    let text = Text::raw("Hello World");
-    frame.render_widget(text, frame.area());
+    // ratatui::restore();
 }

@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppState {
     pub song_info: Option<SongInfo>,
@@ -13,9 +15,9 @@ pub struct SongInfo {
     pub album: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Lyrics {
-    pub plain: String,
+    pub plain: Option<String>,
     pub synced: Option<String>
 }
 
