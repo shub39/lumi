@@ -1,12 +1,24 @@
-use crate::{lyrics::fetch_lyrics, player::watch_playerctl, state::AppState};
+use std::time::Duration;
 
+use ratatui::{
+    crossterm::event::{self, Event, KeyCode}, Frame
+};
+
+use crate::{
+    draw::draw,
+    lyrics::fetch_lyrics,
+    player::watch_playerctl,
+    state::{AppState, Lyrics},
+};
+
+pub mod draw;
 pub mod lyrics;
 pub mod player;
 pub mod state;
 
 #[tokio::main]
 async fn main() {
-    // let mut terminal = ratatui::init();
+    let mut terminal = ratatui::init();
     let mut app_state = AppState {
         song_info: None,
         lyrics: None,
@@ -14,7 +26,7 @@ async fn main() {
         quit: false,
     };
 
-    loop {
+    while !app_state.quit {
         let saved_app_state = app_state.clone();
         app_state.song_info = watch_playerctl();
 
@@ -27,7 +39,8 @@ async fn main() {
                     Ok(lyrics) => {
                         app_state.lyrics = Some(lyrics);
                         app_state.loading_status = state::LoadingStatus::Loaded;
-                        dbg!(&app_state);
+
+                        // Draw lyrics
                     }
                     Err(err) => {
                         eprintln!("Failed to fetch lyrics: {}", err);
@@ -36,14 +49,20 @@ async fn main() {
                     }
                 }
             }
-        }
+            terminal
+                .draw(|f| draw(f, &app_state))
+                .expect("Failed to draw frame");
 
-        // terminal.draw(draw).expect("Failed to draw frame");
-        // if matches!(event::read().expect("Failed to read event"), Event::Key(_)) {
-        // break;
-        // }
-        //
+            if event::poll(Duration::from_millis(100)).unwrap() {
+                if let Event::Key(key) = event::read().unwrap() {
+                    match key.code {
+                        KeyCode::Char('q') => app_state.quit = true,
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
-    // ratatui::restore();
+    ratatui::restore();
 }
