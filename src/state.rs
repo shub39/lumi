@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap};
+
 use serde::Deserialize;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,7 +20,7 @@ pub struct SongInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Lyrics {
     pub plain: Option<String>,
-    pub synced: Option<String>
+    pub synced: Option<BTreeMap<u32, String>>
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
