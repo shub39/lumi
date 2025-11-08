@@ -61,7 +61,7 @@ pub async fn fetch_lyrics(title: &String, artist: &String) -> Result<Lyrics, Box
     };
 
     Ok(Lyrics {
-        plain: best["plainLyrics"].as_str().map(|s| s.to_string()),
+        plain: best["plainLyrics"].as_str().map(|s| s.trim_start_matches('\u{feff}').to_string()),
         synced: Some(parse_lyrics_to_map(best["syncedLyrics"].as_str().unwrap_or(""))),
     })
 }
@@ -69,7 +69,10 @@ pub async fn fetch_lyrics(title: &String, artist: &String) -> Result<Lyrics, Box
 pub fn parse_lyrics_to_map(lyrics_string: &str) -> BTreeMap<u32, String> {
     let mut lyrics_map = BTreeMap::new();
 
-    for line in lyrics_string.lines() {
+    // 🔹 Hapus karakter BOM (Byte Order Mark) di awal teks jika ada
+    let clean_lyrics = lyrics_string.trim_start_matches('\u{feff}');
+
+    for line in clean_lyrics.lines() {
         if let Some(end_of_timestamp) = line.find(']') {
             let timestamp_str = &line[1..end_of_timestamp];
             let lyric_str = line[end_of_timestamp + 1..].trim();
