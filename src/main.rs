@@ -70,7 +70,6 @@ async fn main() {
                 }
             }
         } else {
-            // Playerctl mati → jangan print apa-apa
             tokio::time::sleep(Duration::from_secs(1)).await;
             continue;
         }

@@ -7,16 +7,16 @@ pub fn watch_playerctl() -> Option<(SongInfo, u32)> {
         .arg("--format")
         .arg("{{title}}|{{artist}}|{{album}}|{{position}}")
         .output()
-        .ok()?; // kalau playerctl gagal → None
+        .ok()?;
 
     let buffer = String::from_utf8_lossy(&cmd.stdout).trim().to_string();
     if buffer.is_empty() {
-        return None; // player mati / tidak aktif
+        return None;
     }
 
     let parts: Vec<&str> = buffer.split('|').collect();
     if parts.len() < 4 {
-        return None; // data tidak lengkap
+        return None;
     }
 
     let title = parts.get(0).unwrap_or(&"").to_string();
