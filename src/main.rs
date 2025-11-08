@@ -48,7 +48,8 @@ async fn main() {
                     app_state.loading_status = LoadingStatus::Error(err.to_string());
                     println!("~/   Error fetching lyrics: {}", err);
 
-                    app_state.quit = true;
+                    // jangan keluar dari loop, cukup reset state lyrics
+                    app_state.lyrics = None;
                 }
             }
 
