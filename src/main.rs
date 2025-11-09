@@ -26,50 +26,52 @@ async fn main() {
     while !app_state.quit {
         time::sleep(Duration::from_millis(200)).await;
 
-        let (new_song_info, position) = watch_playerctl();
+        if let Some((new_song_info, position)) = watch_playerctl() {
+            if app_state.song_info != Some(new_song_info.clone()) {
+                app_state.song_info = Some(new_song_info.clone());
+                app_state.loading_status = LoadingStatus::Loading;
+                println!(
+                    "~/ 󰝚 Loading new Song {} - {}",
+                    new_song_info.title, new_song_info.artist
+                );
 
-        if app_state.song_info != Some(new_song_info.clone()) {
-            app_state.song_info = Some(new_song_info.clone());
-            app_state.loading_status = LoadingStatus::Loading;
-            println!(
-                "~/ 󰝚 Loading new Song {} - {}",
-                new_song_info.title, new_song_info.artist
-            );
-
-            let song_info = new_song_info.clone();
-            let lyrics = fetch_lyrics(&song_info.title, &song_info.artist).await;
-            match lyrics {
-                Ok(lyrics) => {
-                    app_state.lyrics = Some(lyrics);
-                    app_state.loading_status = LoadingStatus::Loaded;
-                    println!("~/  Loaded Lyrics for {} - {}", new_song_info.title, new_song_info.artist);
+                let song_info = new_song_info.clone();
+                let lyrics = fetch_lyrics(&song_info.title, &song_info.artist).await;
+                match lyrics {
+                    Ok(lyrics) => {
+                        app_state.lyrics = Some(lyrics);
+                        app_state.loading_status = LoadingStatus::Loaded;
+                        println!("~/  Loaded Lyrics for {} - {}", new_song_info.title, new_song_info.artist);
+                    }
+                    Err(err) => {
+                        app_state.loading_status = LoadingStatus::Error(err.to_string());
+                        println!("~/   Error fetching lyrics: {}", err);
+                        app_state.lyrics = None;
+                    }
                 }
-                Err(err) => {
-                    app_state.loading_status = LoadingStatus::Error(err.to_string());
-                    println!("~/   Error fetching lyrics: {}", err);
 
-                    app_state.quit = true;
-                }
+                last_printed = None;
             }
 
-            last_printed = None;
-        }
+            if let Some(lyrics) = &app_state.lyrics {
+                if let Some(synced) = &lyrics.synced {
+                    if last_printed.is_none() {
+                        last_printed = Some(0);
+                    }
 
-        if let Some(lyrics) = &app_state.lyrics {
-            if let Some(synced) = &lyrics.synced {
-                if last_printed.is_none() {
-                    last_printed = Some(0);
+                    if let Some((ts, line)) = synced.range(..=position).last() {
+                        if Some(*ts) != last_printed {
+                            println!("{line}");
+                            last_printed = Some(*ts);
+                        }
+                    }
+                } else {
+                    println!("~/ 󰇸 No Synced Lyrics");
                 }
-
-                if let Some((ts, line)) = synced.range(..=position).last() {
-                    if Some(*ts) != last_printed {
-                        println!("{line}");
-                        last_printed = Some(*ts);
-                    } 
-                }
-            } else {
-                println!("~/ 󰇸 No Synced Lyrics")
             }
+        } else {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            continue;
         }
     }
 }

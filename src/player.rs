@@ -1,33 +1,37 @@
-use std::{process::Command};
-
+use std::process::Command;
 use crate::state::SongInfo;
 
-pub fn watch_playerctl() -> (SongInfo, u32) {
+pub fn watch_playerctl() -> Option<(SongInfo, u32)> {
     let cmd = Command::new("playerctl")
         .arg("metadata")
         .arg("--format")
         .arg("{{title}}|{{artist}}|{{album}}|{{position}}")
         .output()
-        .expect("failed to spawn playerctl");
+        .ok()?;
 
-    let (title, artist, album, position) = {
-        let buffer = String::from_utf8_lossy(&cmd.stdout);
-        let parts: Vec<&str> = buffer.split('|').collect();
-        (
-            parts[0].to_string(),
-            parts[1].to_string(),
-            parts[2].trim_matches(char::is_control).to_string(),
-            parts[3].trim_matches(char::is_control).parse::<u32>().unwrap_or(0) / 1000
-        )
-    };
-    
-    (
-        SongInfo {
-            title,
-            artist,
-            album,
-        },
+    let buffer = String::from_utf8_lossy(&cmd.stdout).trim().to_string();
+    if buffer.is_empty() {
+        return None;
+    }
+
+    let parts: Vec<&str> = buffer.split('|').collect();
+    if parts.len() < 4 {
+        return None;
+    }
+
+    let title = parts.get(0).unwrap_or(&"").to_string();
+    let artist = parts.get(1).unwrap_or(&"").to_string();
+    let album = parts.get(2).unwrap_or(&"").to_string();
+    let position = parts
+        .get(3)
+        .unwrap_or(&"0")
+        .trim_matches(char::is_control)
+        .parse::<u32>()
+        .unwrap_or(0)
+        / 1000;
+
+    Some((
+        SongInfo { title, artist, album },
         position,
-    )
+    ))
 }
-
