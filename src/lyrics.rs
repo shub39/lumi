@@ -30,33 +30,8 @@ pub async fn fetch_lyrics(title: &String, artist: &String) -> Result<Lyrics, Box
         return Err("No lyrics found".into());
     }
 
-    let lower_title = clean_title.to_lowercase();
-    let lower_artist = artist.to_lowercase();
-
-    let mut best_match = None;
-    let mut best_score = 0;
-
-    for item in results {
-        let track_name = item["trackName"].as_str().unwrap_or("").to_lowercase();
-        let artist_name = item["artistName"].as_str().unwrap_or("").to_lowercase();
-
-        let mut score = 0;
-        if track_name.contains(&lower_title) {
-            score += 2;
-        }
-        if artist_name.contains(&lower_artist) {
-            score += 1;
-        }
-
-        if score > best_score {
-            best_score = score;
-            best_match = Some(item);
-        }
-    }
-
-    let Some(best) = best_match else {
-        return Err("No suitable lyrics match found".into());
-    };
+    // 🟢 Ambil hasil pertama (paling atas)
+    let best = &results[0];
 
     Ok(Lyrics {
         plain: best["plainLyrics"].as_str().map(|s| s.trim_start_matches('\u{feff}').to_string()),
@@ -66,7 +41,6 @@ pub async fn fetch_lyrics(title: &String, artist: &String) -> Result<Lyrics, Box
 
 pub fn parse_lyrics_to_map(lyrics_string: &str) -> BTreeMap<u32, String> {
     let mut lyrics_map = BTreeMap::new();
-
     let clean_lyrics = lyrics_string.trim_start_matches('\u{feff}');
 
     for line in clean_lyrics.lines() {
